@@ -15,13 +15,13 @@ from sklearn.ensemble import RandomForestClassifier
 warnings.filterwarnings("ignore")
 st.set_page_config(page_title="Hotel Cancellation Predictor", initial_sidebar_state="expanded")
 
-# --- Config & Constants ---
-# Using 40% threshold because missing a real cancellation costs the hotel more than a false alarm
+
+# Using the 40% threshold because missing a real cancellation costs the hotel more than a false alarm
 CANCEL_THRESHOLD = 0.40
-# TODO: Maybe pull this from an API later — hardcoding for now since it's close enough
+#Balance te EUR and USD
 EUR_TO_USD = 1.10
 
-# Mapping friendly display names to what the dataset actually expects
+# Mapping display 
 meal_map = {
     "Not Selected": "Not Selected",
     "Meal Plan 1 (Breakfast Only)": "Meal Plan 1",
@@ -61,7 +61,7 @@ NUMERICAL_COLS = [
     "total_guests",
 ]
 
-# Human-readable labels for the importance chart
+# labels for the importance chart
 _NUM_DISPLAY = {
     "no_of_adults": "Adults in booking",
     "no_of_children": "Children in booking",
@@ -102,18 +102,18 @@ def train_model():
     X = df[CATEGORICAL_COLS + NUMERICAL_COLS]
     y = df["target"]
 
-    # Stratify keeps the cancellation ratio balanced across train/test
+    #by using train_test_split here balance the cancellation ratio
     X_train, _, y_train, _ = train_test_split(
         X, y, test_size=0.2, random_state=42, stratify=y
     )
 
-    # Median works better than mean here — there are some extreme outliers in price and lead_time
+    # Median works better than mean so we chose median
     num_transformer = Pipeline([
         ("imp", SimpleImputer(strategy="median")),
         ("sc", StandardScaler()),
     ])
 
-    # Filling unknown categories with a literal "Unknown" so OHE doesn't break on unseen values
+    # filling unknown categories with a word "Unknown" 
     cat_transformer = Pipeline([
         ("imp", SimpleImputer(strategy="constant", fill_value="Unknown")),
         ("enc", OneHotEncoder(handle_unknown="ignore", sparse_output=False)),
@@ -138,7 +138,7 @@ def train_model():
 
 @st.cache_data(show_spinner=False)
 def get_top_importances(_mdl, n=7):
-    # OHE explodes each categorical into many binary columns — need to sum them back per feature
+    # Explodes each categorical into many binary columns
     rf_clf = _mdl.named_steps["classifier"]
     ohe_names = (
         _mdl.named_steps["preprocessor"]
@@ -167,7 +167,7 @@ def get_top_importances(_mdl, n=7):
 
 def build_explanation(lead_t, special_req, avg_usd, prev_cancel,
                       bk_type, ret_guest, total_n, cancel_prob):
-    # Convert to EUR for comparisons — the thresholds below are based on the training data's price range
+    # Convert EUR to USD 
     avg_eur = avg_usd / EUR_TO_USD
     drivers = []
 
@@ -177,7 +177,7 @@ def build_explanation(lead_t, special_req, avg_usd, prev_cancel,
     elif lead_t > 60:
         drivers.append("a moderately long lead time")
     elif lead_t < 14:
-        drivers.append("a short lead time — booked close to arrival")
+        drivers.append("a short lead time and is close to arrival")
 
     if special_req == 0:
         drivers.append("no special requests, which often means lower commitment to the stay")
@@ -190,7 +190,7 @@ def build_explanation(lead_t, special_req, avg_usd, prev_cancel,
         drivers.append("a low nightly rate, which tends to go with more flexible bookings")
 
     if bk_type == "Online":
-        drivers.append("an online booking channel, which tends to have higher cancellation rates")
+        drivers.append("an online booking channel, which casued to have higher cancellation rates")
     elif bk_type in ["Corporate", "Offline"]:
         drivers.append(f"a {bk_type.lower()} booking channel, where guests tend to follow through")
 
@@ -230,7 +230,7 @@ def build_explanation(lead_t, special_req, avg_usd, prev_cancel,
 
 def get_key_drivers(lead_t, special_req, avg_usd, prev_cancel,
                     bk_type, ret_guest, total_n, cancel_prob):
-    # Returns up to 4 bullet points. Each is (direction, text) where direction is 'up', 'down', or 'neut'
+    # Returns up to 4 bullet points. Each is direction and text where direction is 'up', 'down', or 'neut'
     room_rate = avg_usd / EUR_TO_USD
     drivers = []
 
@@ -251,23 +251,23 @@ def get_key_drivers(lead_t, special_req, avg_usd, prev_cancel,
     if prev_cancel >= 1:
         drivers.append(("up", f"{prev_cancel} prior cancellation on record — adds some risk"))
     elif ret_guest == "Yes":
-        drivers.append(("down", "Returning guest — these guests tend to show up"))
+        drivers.append(("down", "Returning guest, these guests tend to show up"))
 
     if bk_type == "Online":
-        drivers.append(("up", "Online booking — tends to have higher cancel rates overall"))
+        drivers.append(("up", "Online booking  have higher cancel rates overall"))
     elif bk_type in ["Corporate", "Offline"]:
-        drivers.append(("down", f"{bk_type} booking — tends to be more reliable"))
+        drivers.append(("down", f"{bk_type} booking tends to be more reliable"))
 
     if room_rate > 200:
-        drivers.append(("up", "High room price — pricier bookings cancel more often"))
+        drivers.append(("up", "High room price causes bookings cancel more often"))
     elif room_rate < 70:
-        drivers.append(("neut", "Low room price — flexible booking, not a strong risk signal"))
+        drivers.append(("neut", "Low room price do flexible booking so not a strong risk signal"))
 
     return drivers[:4]
 
 
 def get_impact_text(feature_label, raw_value):
-    """Short label for the summary table — just business rules, nothing fancy."""
+    """Short label for the summary table"""
     try:
         if feature_label == "Days before arrival booking was made":
             v = int(float(raw_value))
@@ -314,9 +314,9 @@ def get_impact_text(feature_label, raw_value):
             v = float(raw_value.replace("$", "").replace(",", ""))
             eur = v / EUR_TO_USD
             if eur > 200:
-                return "High price may increases risk"
+                return "High price may increases the risk"
             elif eur < 70:
-                return "Low price can cause minor effect"
+                return "Low price can cause minor the effect"
             else:
                 return "Moderate pricing almost neutral"
 
@@ -332,14 +332,14 @@ def get_impact_text(feature_label, raw_value):
         elif feature_label in ("Weekend nights booked", "Weekday nights booked"):
             v = int(float(raw_value))
             if v == 0:
-                return "Zero nights _ unusual booking"
+                return "Zero nights, unusual booking"
             else:
                 return "Normal stay duration"
 
         elif feature_label == "Adults staying":
             v = int(float(raw_value))
             if v == 0:
-                return "No adults _ unusual booking"
+                return "No adults, unusual booking"
             else:
                 return "Standard guest count"
 
@@ -379,7 +379,7 @@ def render_feature_chart(top_feats):
     return fig
 
 
-# First load is slow (~20s) because it trains on 36k rows — Streamlit caches it after that
+# First load is slow i.e ~20s, because it trains on 36k rows 
 with st.spinner("Training model,this takes about 20 seconds on first load..."):
     model = train_model()
 
@@ -453,7 +453,7 @@ if predict_button:
     room_internal = room_map[room_display]
     rg_val = 1 if repeated_guest == "Yes" else 0
     cp_val = 1 if car_parking == "Yes" else 0
-    # Sanity check to avoid div by zero even though it shouldn't happen with a fixed constant
+    # Doing the Sanity check to avoid div by zero even though it shouldn't happen with a fixed constant
     avg_price_eur = avg_price_usd / EUR_TO_USD if EUR_TO_USD else avg_price_usd
 
     input_df = pd.DataFrame([{
@@ -564,33 +564,40 @@ with st.expander("How this works"):
     st.markdown("""
 **Model**
 
-Random Forest trained on ~36,000 hotel reservations. I tested Logistic Regression and a basic
-Decision Tree first — the Random Forest won out by a noticeable margin, especially on the
-cancellation class.
+This tool the tuned Random Forest classifier which is trained on the historical hotel
+reservation data. It was chosen after the testing it against the Logistic Regression
+and the Decision Tree baselines. The training set includes nealrly 36,000 bookings
+with known outcomes.
 
-**Threshold and class imbalance**
+**Class imbalance and threshold**
 
-About a third of bookings in the dataset were cancelled, which isn't terrible but still skews
-things. I applied class weights to stop the model from lazily predicting "not cancelled" most of
-the time. The cancellation threshold is 0.40 instead of the standard 0.50 — I found that
-erring on the side of caution made more sense here, since a missed cancellation tends to cost
-more than a false alarm.
+Almost the third of the bookings in the training data were cancelled roughly 33%.
+To stop the model from leaning too heavily toward the majority class, class
+weights are applied during the training. The prediction threshold is also set to
+0.40 instead of the default 0.50.
+
+That means if a booking is flagged as at risk when the model estimates a
+cancellation probability of 40% or bit or much higher. This makes the tool more
+crucial to likely cancellations, which are usually more costly to miss.
 
 **Training data**
 
-Only bookings with a confirmed outcome were included. I dropped arrival year entirely — the
-dataset only covers 2017–2018, so it wouldn't be useful beyond that range anyway.
+Only bookings with a confirmed outcome cancelled or completed were used
+for training. The arrival year field was removed because the dataset only
+covers the two years which are 2017 and 2018, so it would not be useful outside that period.
 
-**Features**
+**Features used**
 
-Guest composition, stay length, room type, meal plan, booking channel, price, lead time, and
-prior cancellation history. Lead time and past cancellation behaviour came out as the strongest
-signals by a fair margin. The model struggles a bit with edge cases like Aviation and
-Complementary bookings — not many examples of those in the data.
+The model uses important information such as guest composition, stay length, room type,
+meal plan, booking channel, price, lead time, and previous cancellation
+history. Lead time and past cancellation behaviour considers to be the strongest signals.
 
 **Limitations**
 
-These are probability estimates, not guarantees. The model is based on historical data and may
-not hold up if booking behaviour shifts significantly. Best used as one input into revenue
-management decisions, not as a hard rule.
+This model cannot predict cancellations with complete certainty. Its probability
+estimates are based on historical patterns and it may not fully reflect the current
+booking conditions which are changing time to time . It should be used as a decision support tool for revenue
+management teams and not as a replacement for operational judgement.
 """)
+
+
