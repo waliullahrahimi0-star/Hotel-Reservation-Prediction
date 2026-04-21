@@ -15,8 +15,8 @@ from sklearn.ensemble import RandomForestClassifier
 warnings.filterwarnings("ignore")
 st.set_page_config(page_title="Hotel Cancellation Predictor", initial_sidebar_state="expanded")
 
-# These are the friendlier display names that get shown in the sidebar
-# instead of the raw column values that come from the CSV
+# These are the nice display names that get shown in the sidebar
+# instead of the using the raw column values that come from the CSV
 
 MEAL_DISPLAY_TO_INTERNAL = {
     "Not Selected":                  "Not Selected",
@@ -42,13 +42,13 @@ MONTH_NAMES = {
     9: "September", 10: "October", 11: "November", 12: "December",
 }
 
-# The dataset uses EUR prices so I'm converting to USD for display
-# since USD is more universally understood by users
+# The dataset uses the EUR prices so now converting to USD for display
+# since USD is more universally understood by the users as its an international currency
 CANCEL_THRESHOLD = 0.40
 EUR_TO_USD       = 1.10
 
-# Splitting features into categorical vs numerical upfront
-# makes it easier to pass them into the sklearn ColumnTransformer later
+# Splitting the features into categorical vs numerical upfront
+# That makes it easier to pass them into the sklearn ColumnTransformer later
 
 CATEGORICAL_COLS = ["type_of_meal_plan", "room_type_reserved", "market_segment_type"]
 NUMERICAL_COLS   = [
@@ -65,8 +65,7 @@ NUMERICAL_COLS   = [
     "total_guests",
 ]
 
-# Human-readable versions of the column names
-# used in the importance chart and the summary table
+# The below display is used in the importance chart and the summary table
 
 _NUM_DISPLAY = {
     "no_of_adults":                         "Adults in booking",
@@ -92,7 +91,7 @@ _CAT_DISPLAY = {
 }
 
 
-# ── Data loading and model training ─────────────────────────────────────────
+# Data loading and model training 
 
 @st.cache_data(show_spinner=False)
 def load_and_prepare_data():
@@ -111,12 +110,12 @@ def train_model():
     X  = df[CATEGORICAL_COLS + NUMERICAL_COLS]
     y  = df["target"]
 
-    # keeping 20% aside for evaluation; stratify keeps the class ratio the same
+    # keeping the 20% aside for evaluation and stratify keeps the class ratio the same
     X_train, _, y_train, _ = train_test_split(
         X, y, test_size=0.2, random_state=42, stratify=y
     )
 
-    # separate pipelines for numeric and categorical so each gets appropriate treatment
+    # Below is the seperate pipelines for numeric and categorical so each gets appropriate treatment
     num_t = Pipeline([("imp", SimpleImputer(strategy="median")),
                       ("sc",  StandardScaler())])
     cat_t = Pipeline([("imp", SimpleImputer(strategy="constant", fill_value="Unknown")),
@@ -137,12 +136,12 @@ def train_model():
     return pipe
 
 
-# ── Feature importance helper ────────────────────────────────────────────────
+# Feature importance helper 
 
 @st.cache_data(show_spinner=False)
 def get_top_importances(_mdl, n=7):
-    # After one-hot encoding the categorical columns get split into many binary
-    # columns. This function adds those sub-column importances back together
+    # After one hot encoding the categorical columns get split into many binary
+    # columns. This function adds those sub column importances back together
     # so we get one importance value per original feature group.
     rf_clf    = _mdl.named_steps["classifier"]
     ohe_names = (
@@ -170,7 +169,7 @@ def get_top_importances(_mdl, n=7):
     return series.head(n)
 
 
-# ── Natural language explanation builders ───────────────────────────────────
+# Natural language explanation builders 
 
 def build_explanation(lead_t, special_req, avg_usd, prev_cancel,
                       bk_type, ret_guest, total_n, cancel_prob):
@@ -221,7 +220,7 @@ def build_explanation(lead_t, special_req, avg_usd, prev_cancel,
                     "reservations that typically proceed to check-in, based on patterns "
                     "in historical hotel booking data.")
 
-    # build a grammatically correct list string
+    # below to build a grammatically correct list string
     if len(drivers) == 1:
         body_str = drivers[0]
     elif len(drivers) == 2:
@@ -294,18 +293,18 @@ def get_impact_text(feature_label, raw_value):
         elif feature_label == "Special requests count":
             v = int(float(raw_value))
             if v == 0:
-                return "Increases cancellation risk"
+                return "Increases the cancellation risk"
             elif v >= 2:
-                return "Reduces cancellation risk"
+                return "Reduces the cancellation risk"
             else:
                 return "Slight positive effect"
 
         elif feature_label == "Previous cancellations":
             v = int(float(raw_value))
             if v >= 2:
-                return "Significantly increases risk"
+                return "Significantly increases the risk"
             elif v == 1:
-                return "Slightly increases risk"
+                return "Slightly increases the risk"
             else:
                 return "No prior cancellation history"
 
@@ -313,7 +312,7 @@ def get_impact_text(feature_label, raw_value):
             if raw_value == "Yes":
                 return "Reduces cancellation risk"
             else:
-                return "First-time guest"
+                return "First time guest"
 
         elif feature_label == "Booking type":
             if raw_value == "Online":
@@ -361,9 +360,7 @@ def get_impact_text(feature_label, raw_value):
 
     except Exception:
         return "—"
-
-
-# ── Chart rendering ──────────────────────────────────────────────────────────
+#Chart rendering
 
 def render_feature_chart(top_feats):
     labels = top_feats.index.tolist()[::-1]
@@ -394,21 +391,21 @@ def render_feature_chart(top_feats):
     return fig
 
 
-# ── Boot up ──────────────────────────────────────────────────────────────────
+#Boot up 
 
-# Training takes roughly 20 seconds on cold start because the dataset is
-# ~36k rows and we're growing 150 trees. Subsequent loads use the cache.
+# Training takes roughly 20 seconds on the cold start because the dataset have almost
+# 36k rows and we are growing 150 trees. Subsequent loads use the cache.
 with st.spinner("Training model,this takes about 20 seconds on first load..."):
     model = train_model()
 
 top_importances = get_top_importances(model)
 
 
-# ── Sidebar inputs ───────────────────────────────────────────────────────────
+#Sidebar inputs 
 
 with st.sidebar:
     st.header("Input Details")
-    st.write("Enter the booking details below to generate the prediction.")
+    st.write("Enter the booking details below to generate theprediction.")
 
     st.subheader("Guest Details")
     no_adults    = st.number_input("Adults staying", 1, 10, 2,
@@ -454,7 +451,7 @@ with st.sidebar:
     predict_button = st.button("Generate Prediction")
 
 
-# ── Main area ────────────────────────────────────────────────────────────────
+# Main area 
 
 st.title("Hotel Cancellation Predictor")
 st.write("Predicts whether a hotel reservation is likely to be cancelled and is based on booking details and the behaviour of the guest.")
@@ -462,7 +459,7 @@ st.write("Predicts whether a hotel reservation is likely to be cancelled and is 
 st.divider()
 
 
-# ── Prediction logic ─────────────────────────────────────────────────────────
+#Prediction logic
 
 if predict_button:
     total_nights_val = int(weekend_nights) + int(week_nights)
@@ -507,7 +504,7 @@ if predict_button:
     proceed_p        = round(proba[0] * 100, 1)
     predicted_cancel = proba[1] >= CANCEL_THRESHOLD
 
-    # ── Prediction result ────────────────────────────────────────────────────
+    # Prediction result
     if predicted_cancel:
         st.error(f"**Reservation Shows Elevated Cancellation Risk**  \n"
                  f"The model estimates a **{cancel_p}%** probability of cancellation. "
@@ -515,9 +512,9 @@ if predict_button:
     else:
         st.success(f"**Booking Shows Low Risk of Cancellation**  \n"
                    f"The model estimates a **{proceed_p}%** probability that the booking will be honoured. "
-                   f"This profile is consistent with reservations that proceed to check-in.")
+                   f"This profile is consistent with the reservations that proceed to check-in.")
 
-    # ── Confidence breakdown ─────────────────────────────────────────────────
+    #Confidence breakdown 
     st.subheader("Confidence Breakdown")
     col1, col2 = st.columns(2)
     with col1:
@@ -527,7 +524,7 @@ if predict_button:
         st.metric("Cancelled", f"{cancel_p}%")
         st.progress(int(cancel_p))
 
-    # ── Key drivers ──────────────────────────────────────────────────────────
+    #Key drivers 
     st.subheader("Key Drivers of This Prediction")
 
     key_drivers = get_key_drivers(
@@ -544,7 +541,7 @@ if predict_button:
         else:
             st.write(f"- Neutral: {text}")
 
-    # ── Feature importance chart ─────────────────────────────────────────────
+    #Feature importance chart 
     st.subheader("Key Factors Influencing This Prediction")
     st.caption("Features ranked by relative importance — shows what the model relies on most when assessing cancellation risk.")
 
@@ -552,7 +549,7 @@ if predict_button:
     st.pyplot(fig, use_container_width=False)
     plt.close(fig)
 
-    # ── Explanation paragraph ─────────────────────────────────────────────────
+    #Explanation paragraph 
     st.subheader("Explanation")
     explanation = build_explanation(
         int(lead_time), int(special_req), avg_price_usd,
@@ -561,7 +558,7 @@ if predict_button:
     )
     st.info(explanation)
 
-    # ── Summary table ─────────────────────────────────────────────────────────
+    # Summary table 
     st.subheader("Summary of Inputs Used")
 
     summary_rows = [
@@ -590,7 +587,7 @@ else:
     st.info("Complete  the necessary fields which apperas in the sidebar and click Generate Prediction.")
 
 
-# ── How this works expander ──────────────────────────────────────────────────
+#How this works expander
 
 st.divider()
 with st.expander("How this works"):
