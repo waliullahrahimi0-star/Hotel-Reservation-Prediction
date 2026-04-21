@@ -40,10 +40,11 @@ MONTH_NAMES = {
     5: "May", 6: "June", 7: "July", 8: "August",
     9: "September", 10: "October", 11: "November", 12: "December",
 }
+#As the Dataset is in EUR , it needs to convert it to USD which is an international currenecy.
 CANCEL_THRESHOLD = 0.40
 EUR_TO_USD       = 1.10
 
-# feature column lists 
+# Below is the lists of the feature column 
 
 CATEGORICAL_COLS = ["type_of_meal_plan", "room_type_reserved", "market_segment_type"]
 NUMERICAL_COLS   = [
@@ -158,9 +159,9 @@ def build_explanation(lead_t, special_req, avg_usd, prev_cancel,
     drivers = []
 
     if lead_t > 150:
-        drivers.append("a very long lead time")
+        drivers.append("a long lead time")
     elif lead_t > 60:
-        drivers.append("a mediocre long lead time")
+        drivers.append("a mediocre lead time")
     elif lead_t < 14:
         drivers.append("a short lead time close to arrival date")
 
@@ -175,9 +176,9 @@ def build_explanation(lead_t, special_req, avg_usd, prev_cancel,
         drivers.append("a low nightly room rate and is associated with flexible bookings")
 
     if bk_type == "Online":
-        drivers.append("an online booking channel, which historically carries the elevated cancellation rates")
+        drivers.append("an online booking channel, which historically carries the high cancellation rates")
     elif bk_type in ["Corporate", "Offline"]:
-        drivers.append(f"a {bk_type.lower()} booking channel, associated with more committed reservations")
+        drivers.append(f"a {bk_type.lower()} booking channel, associated with more committed to reservations")
 
     if prev_cancel >= 2:
         drivers.append("a history of multiple prior cancellations")
@@ -208,12 +209,12 @@ def build_explanation(lead_t, special_req, avg_usd, prev_cancel,
         body_str = ", ".join(drivers[:-1]) + ", and " + drivers[-1]
 
     if cancel_prob >= CANCEL_THRESHOLD:
-        return (f"This prediction is primarily influenced by {body_str}. "
+        return (f"This prediction is initially influenced by the {body_str}. "
                 "These characteristics are commonly linked with a higher "
                 "tendency for reservations to be cancelled.")
     else:
         return (f"This prediction benefits from {body_str}. "
-                "Together, these factors are associated with reservations that "
+                "Together, these factors are linked with reservations that "
                 "are more likely to proceed to check-in.")
 
 
@@ -226,11 +227,11 @@ def get_key_drivers(lead_t, special_req, avg_usd, prev_cancel,
     drivers = []
 
     if lead_t > 100:
-        drivers.append(("up", "Long lead time increased the cancellation risk"))
+        drivers.append(("up", "Long lead time also increased the cancellation risk"))
     elif lead_t < 14:
-        drivers.append(("down", "Short lead time reduced cancellation risk"))
+        drivers.append(("down", "Short lead time may reduced cancellation risk"))
     else:
-        drivers.append(("neut", "Moderate lead time had a neutral effect"))
+        drivers.append(("neut", "neutral lead time had a neutral effect"))
 
     if special_req == 0:
         drivers.append(("up", "No special requests suggests the lower booking commitment"))
@@ -240,7 +241,7 @@ def get_key_drivers(lead_t, special_req, avg_usd, prev_cancel,
         drivers.append(("neut", "One special request had a slight positive effect"))
 
     if prev_cancel >= 1:
-        drivers.append(("up", f"{prev_cancel} prior cancellation(s) increased risk"))
+        drivers.append(("up", f"{prev_cancel} prior cancellation increased risk"))
     elif ret_guest == "Yes":
         drivers.append(("down", "Returning guest status reduced cancellation risk"))
 
