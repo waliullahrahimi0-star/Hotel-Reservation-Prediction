@@ -13,13 +13,15 @@ from sklearn.pipeline import Pipeline
 from sklearn.metrics import accuracy_score
 
 #  page config 
+#This step sets up the basic configuration of the app or notebook display.
+#It controls things like the page title, layout, and the overall appearance.
 
 st.set_page_config(
     page_title="Hotel Cancellation Predictor",
     layout="wide"
 )
 
-# feature lists 
+# Below feature lists 
 
 CAT_FEATURES = [
     'type_of_meal_plan',
@@ -52,10 +54,10 @@ CANCEL_THRESHOLD = 0.40
 
 @st.cache_resource(show_spinner=False)
 def train_model():
-    # load and prepare dataset
+    # load and prepare the dataset
     df = pd.read_csv('Hotel_Reservations.csv')
 
-    # create target: cancelled = 1
+    # create target, cancelled = 1
     df['target'] = (df['booking_status'] == 'Canceled').astype(int)
 
     # feature engineering
@@ -64,7 +66,10 @@ def train_model():
     total_prev = df['no_of_previous_cancellations'] + df['no_of_previous_bookings_not_canceled']
     df['cancellation_rate'] = (df['no_of_previous_cancellations'] / total_prev).fillna(0)
 
-    # select features - dropping arrival_year (only 2017/2018, not useful)
+    # select features
+    #This step selects useful features and removes unnecessary ones like arrival_year.
+#The column is dropped because it has limited values and adds little predictive value.
+
     X = df[NUM_FEATURES + CAT_FEATURES]
     y = df['target']
 
@@ -181,7 +186,7 @@ if predict_btn:
     total_prev_bookings = prev_cancel + prev_ok
     cancel_rate = prev_cancel / total_prev_bookings if total_prev_bookings > 0 else 0.0
 
-    # price entered in USD - convert to EUR for model (dataset uses EUR)
+    # price entered in USD i.e convert to EUR for model as the dataset uses EUR
     avg_price_eur = avg_price / 1.10
 
     input_data = pd.DataFrame([{
