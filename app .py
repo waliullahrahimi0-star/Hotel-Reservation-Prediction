@@ -13,10 +13,9 @@ from sklearn.impute import SimpleImputer
 from sklearn.ensemble import RandomForestClassifier
 
 warnings.filterwarnings("ignore")
-
 st.set_page_config(page_title="Hotel Cancellation Predictor", initial_sidebar_state="expanded")
 
-# ── label mappings ────────────────────────────────────────────────────────────
+# label mappings 
 
 MEAL_DISPLAY_TO_INTERNAL = {
     "Not Selected":                  "Not Selected",
@@ -41,11 +40,10 @@ MONTH_NAMES = {
     5: "May", 6: "June", 7: "July", 8: "August",
     9: "September", 10: "October", 11: "November", 12: "December",
 }
-
 CANCEL_THRESHOLD = 0.40
 EUR_TO_USD       = 1.10
 
-# ── feature column lists ──────────────────────────────────────────────────────
+# feature column lists 
 
 CATEGORICAL_COLS = ["type_of_meal_plan", "room_type_reserved", "market_segment_type"]
 NUMERICAL_COLS   = [
@@ -85,8 +83,7 @@ _CAT_DISPLAY = {
     "market_segment_type": "Booking channel",
 }
 
-# ── data loading and model training ──────────────────────────────────────────
-
+#data loading and model training 
 @st.cache_data(show_spinner=False)
 def load_and_prepare_data():
     df = pd.read_csv("Hotel_Reservations.csv")
@@ -94,7 +91,6 @@ def load_and_prepare_data():
     df["total_nights"] = df["no_of_weekend_nights"] + df["no_of_week_nights"]
     df["total_guests"]  = df["no_of_adults"]         + df["no_of_children"]
     return df
-
 
 @st.cache_resource(show_spinner=False)
 def train_model():
@@ -121,14 +117,14 @@ def train_model():
     pipe.fit(X_train, y_train)
     return pipe
 
-# ── feature importance ────────────────────────────────────────────────────────
+#feature importance 
 
 @st.cache_data(show_spinner=False)
 def get_top_importances(_mdl, n=7):
     """
-    Aggregate one-hot encoded feature importances back to parent-level groups,
-    return the top n as a pandas Series sorted descending.
-    Leading underscore so Streamlit skips hashing the model object.
+Aggregate one hot encoded feature importances back to parent level groups,
+    return the top n as a pandas Series in a sorted descending.
+
     """
     rf_clf    = _mdl.named_steps["classifier"]
     ohe_names = (
@@ -164,29 +160,29 @@ def build_explanation(lead_t, special_req, avg_usd, prev_cancel,
     if lead_t > 150:
         drivers.append("a very long lead time")
     elif lead_t > 60:
-        drivers.append("a moderately long lead time")
+        drivers.append("a mediocre long lead time")
     elif lead_t < 14:
-        drivers.append("a short lead time close to the arrival date")
+        drivers.append("a short lead time close to arrival date")
 
     if special_req == 0:
-        drivers.append("no special requests indicating lower booking commitment")
+        drivers.append("no special requests indicates lower booking commitment")
     elif special_req >= 2:
-        drivers.append("multiple special requests indicating strong commitment to the stay")
+        drivers.append("multiple special requests indicates strong commitment to the stay")
 
     if avg_eur > 200:
         drivers.append("a high nightly room rate")
     elif avg_eur < 70:
-        drivers.append("a low nightly room rate, which is associated with flexible bookings")
+        drivers.append("a low nightly room rate and is associated with flexible bookings")
 
     if bk_type == "Online":
-        drivers.append("an online booking channel, which historically carries elevated cancellation rates")
+        drivers.append("an online booking channel, which historically carries the elevated cancellation rates")
     elif bk_type in ["Corporate", "Offline"]:
         drivers.append(f"a {bk_type.lower()} booking channel, associated with more committed reservations")
 
     if prev_cancel >= 2:
         drivers.append("a history of multiple prior cancellations")
     elif prev_cancel == 1:
-        drivers.append("one prior cancellation on record")
+        drivers.append("one prior cancellation is on record")
 
     if ret_guest == "Yes":
         drivers.append("returning guest status, which reduces the likelihood of cancellation")
@@ -197,7 +193,7 @@ def build_explanation(lead_t, special_req, avg_usd, prev_cancel,
     if not drivers:
         if cancel_prob >= CANCEL_THRESHOLD:
             return ("The overall combination of booking characteristics is consistent with "
-                    "reservations that carry an elevated cancellation risk, based on "
+                    "reservations that carry an elevated cancellation risk,on the basis of "
                     "patterns observed in historical hotel booking data.")
         else:
             return ("The overall combination of booking characteristics is consistent with "
@@ -213,7 +209,7 @@ def build_explanation(lead_t, special_req, avg_usd, prev_cancel,
 
     if cancel_prob >= CANCEL_THRESHOLD:
         return (f"This prediction is primarily influenced by {body_str}. "
-                "These characteristics are commonly associated with a higher "
+                "These characteristics are commonly linked with a higher "
                 "tendency for reservations to be cancelled.")
     else:
         return (f"This prediction benefits from {body_str}. "
@@ -223,21 +219,21 @@ def build_explanation(lead_t, special_req, avg_usd, prev_cancel,
 
 def get_key_drivers(lead_t, special_req, avg_usd, prev_cancel,
                     bk_type, ret_guest, total_n, cancel_prob):
-    """Return up to 4 key drivers as (direction, text) tuples.
-    direction is one of: 'up', 'down', 'neut'
+    """Return up to 4 key drivers as direction, text tuples.
+    Direction is one of: 'up', 'down', 'neut'
     """
     avg_eur = avg_usd / EUR_TO_USD
     drivers = []
 
     if lead_t > 100:
-        drivers.append(("up", "Long lead time increased cancellation risk"))
+        drivers.append(("up", "Long lead time increased the cancellation risk"))
     elif lead_t < 14:
         drivers.append(("down", "Short lead time reduced cancellation risk"))
     else:
         drivers.append(("neut", "Moderate lead time had a neutral effect"))
 
     if special_req == 0:
-        drivers.append(("up", "No special requests suggests lower booking commitment"))
+        drivers.append(("up", "No special requests suggests the lower booking commitment"))
     elif special_req >= 2:
         drivers.append(("down", f"{special_req} special requests indicated stronger commitment"))
     else:
@@ -249,27 +245,26 @@ def get_key_drivers(lead_t, special_req, avg_usd, prev_cancel,
         drivers.append(("down", "Returning guest status reduced cancellation risk"))
 
     if bk_type == "Online":
-        drivers.append(("up", "Online channel is associated with higher cancellation rates"))
+        drivers.append(("up", "Online channel is associated with more cancellation rates"))
     elif bk_type in ["Corporate", "Offline"]:
-        drivers.append(("down", f"{bk_type} channel is associated with lower cancellation rates"))
+        drivers.append(("down", f"{bk_type} channel is associated with the lower cancellation rates"))
 
     if avg_eur > 200:
-        drivers.append(("up", "High room price is associated with elevated risk"))
+        drivers.append(("up", "High room price caused elevated risk"))
     elif avg_eur < 70:
-        drivers.append(("neut", "Low room price indicates a flexible, budget-oriented booking"))
+        drivers.append(("neut", "Low room price indicates a flexible, budget oriented booking"))
 
     return drivers[:4]
 
-
 def get_impact_text(feature_label, raw_value):
-    """Return a plain-text impact label for the summary table."""
+    """Return a plain text impact label for the summary table."""
     try:
         if feature_label == "Days before arrival booking was made":
             v = int(float(raw_value))
             if v > 100:
-                return "Increases cancellation risk"
+                return "Increases the cancellation risk"
             elif v <= 14:
-                return "Reduces cancellation risk"
+                return "Reduces the cancellation risk"
             else:
                 return "Moderate effect"
 
@@ -309,16 +304,16 @@ def get_impact_text(feature_label, raw_value):
             v = float(raw_value.replace("$", "").replace(",", ""))
             eur = v / EUR_TO_USD
             if eur > 200:
-                return "High price increases risk"
+                return "High price may increases risk"
             elif eur < 70:
-                return "Low price, minor effect"
+                return "Low price can cause minor effect"
             else:
-                return "Moderate pricing, neutral"
+                return "Moderate pricing almost neutral"
 
         elif feature_label == "Successful previous bookings":
             v = int(float(raw_value))
             if v >= 3:
-                return "Strong history reduces risk"
+                return "Strong history reduces the risk"
             elif v >= 1:
                 return "Some positive history"
             else:
@@ -327,14 +322,14 @@ def get_impact_text(feature_label, raw_value):
         elif feature_label in ("Weekend nights booked", "Weekday nights booked"):
             v = int(float(raw_value))
             if v == 0:
-                return "Zero nights — unusual booking"
+                return "Zero nights _ unusual booking"
             else:
                 return "Normal stay duration"
 
         elif feature_label == "Adults staying":
             v = int(float(raw_value))
             if v == 0:
-                return "No adults — unusual booking"
+                return "No adults _ unusual booking"
             else:
                 return "Standard guest count"
 
@@ -372,18 +367,18 @@ def render_feature_chart(top_feats):
     plt.tight_layout(pad=0.6)
     return fig
 
-# ── initialise model ──────────────────────────────────────────────────────────
+#initialise model 
 
-with st.spinner("Training model — this takes about 20 seconds on first load..."):
+with st.spinner("Training model,this takes about 20 seconds on first load..."):
     model = train_model()
 
 top_importances = get_top_importances(model)
 
-# ── sidebar ───────────────────────────────────────────────────────────────────
+#sidebar
 
 with st.sidebar:
     st.header("Input Details")
-    st.write("Enter the booking details below to generate a prediction.")
+    st.write("Enter the booking details below to generate the prediction.")
 
     st.subheader("Guest Details")
     no_adults    = st.number_input("Adults staying", 1, 10, 2,
@@ -428,23 +423,23 @@ with st.sidebar:
     st.divider()
     predict_button = st.button("Generate Prediction")
 
-# ── main area ─────────────────────────────────────────────────────────────────
+# main area 
 
 st.title("Hotel Cancellation Predictor")
-st.write("Predicts whether a hotel reservation is likely to be cancelled, based on booking details and guest behaviour.")
+st.write("Predicts whether a hotel reservation is likely to be cancelled and is based on booking details and the behaviour of the guest.")
 
 st.divider()
 
-# ── prediction logic ──────────────────────────────────────────────────────────
+# prediction logic
 
 if predict_button:
     total_nights_val = int(weekend_nights) + int(week_nights)
     total_guests_val = int(no_adults)      + int(no_children)
 
     if total_guests_val < 1:
-        st.warning("Total guests is zero — a valid booking requires at least one adult.")
+        st.warning("Total guests is zero and valid booking requires at least one adult.")
     if total_nights_val < 1:
-        st.warning("Total nights is zero — please enter at least one night for a meaningful prediction.")
+        st.warning("Total nights is zero so, please enter at least one night for a meaningful prediction.")
 
     meal_internal = MEAL_DISPLAY_TO_INTERNAL[meal_display]
     room_internal = ROOM_DISPLAY_TO_INTERNAL[room_display]
@@ -478,7 +473,7 @@ if predict_button:
     proceed_p        = round(proba[0] * 100, 1)
     predicted_cancel = proba[1] >= CANCEL_THRESHOLD
 
-    # ── prediction result ─────────────────────────────────────────────────────
+    #prediction result 
 
     if predicted_cancel:
         st.error(f"**Reservation Shows Elevated Cancellation Risk**  \n"
@@ -489,7 +484,7 @@ if predict_button:
                    f"The model estimates a **{proceed_p}%** probability that the booking will be honoured. "
                    f"This profile is consistent with reservations that proceed to check-in.")
 
-    # ── confidence breakdown ──────────────────────────────────────────────────
+    #confidence breakdown
 
     st.subheader("Confidence Breakdown")
     col1, col2 = st.columns(2)
@@ -500,7 +495,7 @@ if predict_button:
         st.metric("Cancelled", f"{cancel_p}%")
         st.progress(int(cancel_p))
 
-    # ── key drivers ───────────────────────────────────────────────────────────
+    #key drivers
 
     st.subheader("Key Drivers of This Prediction")
 
@@ -518,7 +513,7 @@ if predict_button:
         else:
             st.write(f"- Neutral: {text}")
 
-    # ── feature importance chart ──────────────────────────────────────────────
+    #feature importance chart
 
     st.subheader("Key Factors Influencing This Prediction")
     st.caption("Features ranked by relative importance — shows what the model relies on most when assessing cancellation risk.")
@@ -527,7 +522,7 @@ if predict_button:
     st.pyplot(fig, use_container_width=False)
     plt.close(fig)
 
-    # ── explanation ───────────────────────────────────────────────────────────
+    # explanation
 
     st.subheader("Explanation")
     explanation = build_explanation(
@@ -537,7 +532,7 @@ if predict_button:
     )
     st.info(explanation)
 
-    # ── summary of inputs ─────────────────────────────────────────────────────
+    #summary of inputs
 
     st.subheader("Summary of Inputs Used")
 
@@ -564,47 +559,47 @@ if predict_button:
     st.table(summary_df)
 
 else:
-    st.info("Complete the fields in the sidebar and click Generate Prediction.")
+    st.info("Complete  the necessary fields which apperas in the sidebar and click Generate Prediction.")
 
-# ── how this works ────────────────────────────────────────────────────────────
+#how this works
 
 st.divider()
 with st.expander("How this works"):
     st.markdown("""
 **Model**
 
-This tool uses a tuned Random Forest classifier trained on historical hotel
-reservation data. It was chosen after testing it against Logistic Regression
-and Decision Tree baselines. The training set includes roughly 36,000 bookings
+This tool the tuned Random Forest classifier which is trained on the historical hotel
+reservation data. It was chosen after the testing it against the Logistic Regression
+and the Decision Tree baselines. The training set includes nealrly 36,000 bookings
 with known outcomes.
 
 **Class imbalance and threshold**
 
-Around a third of the bookings in the training data were cancelled (roughly 33%).
+Almost the third of the bookings in the training data were cancelled roughly 33%.
 To stop the model from leaning too heavily toward the majority class, class
-weights are applied during training. The prediction threshold is also set to
+weights are applied during the training. The prediction threshold is also set to
 0.40 instead of the default 0.50.
 
-That means a booking is flagged as at risk when the model estimates a
-cancellation probability of 40% or higher. This makes the tool more
-sensitive to likely cancellations, which are usually more costly to miss.
+That means if a booking is flagged as at risk when the model estimates a
+cancellation probability of 40% or bit or much higher. This makes the tool more
+crucial to likely cancellations, which are usually more costly to miss.
 
 **Training data**
 
-Only bookings with a confirmed outcome — cancelled or completed — were used
+Only bookings with a confirmed outcome cancelled or completed were used
 for training. The arrival year field was removed because the dataset only
-covers 2017 and 2018, so it would not be useful outside that period.
+covers the two years which are 2017 and 2018, so it would not be useful outside that period.
 
 **Features used**
 
-The model uses information such as guest composition, stay length, room type,
+The model uses important information such as guest composition, stay length, room type,
 meal plan, booking channel, price, lead time, and previous cancellation
-history. Lead time and past cancellation behaviour tend to be the strongest signals.
+history. Lead time and past cancellation behaviour considers to be the strongest signals.
 
 **Limitations**
 
 This model cannot predict cancellations with complete certainty. Its probability
-estimates are based on historical patterns and may not fully reflect current
-booking conditions. It should be used as a decision support tool for revenue
-management teams, not as a replacement for operational judgement.
+estimates are based on historical patterns and it may not fully reflect the current
+booking conditions which are changing time to time . It should be used as a decision support tool for revenue
+management teams not as a replacement for operational judgement.
 """)
